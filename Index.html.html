@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Finanzierungsrechner</title>
+<style>
+  :root {
+    --surface-1: #f4f3ef;
+    --surface-2: #ffffff;
+    --text-primary: #1a1a18;
+    --text-secondary: #6b6a65;
+    --text-accent: #0c447c;
+    --bg-accent: #e6f1fb;
+    --border: #ddd9d0;
+    --radius: 8px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--surface-1);
+    color: var(--text-primary);
+    margin: 0;
+    padding: 24px 16px 60px;
+  }
+  .card {
+    max-width: 460px;
+    margin: 0 auto;
+    background: var(--surface-2);
+    border-radius: 16px;
+    padding: 24px;
+    border: 1px solid var(--border);
+  }
+  h1 {
+    font-size: 20px;
+    font-weight: 600;
+    margin: 0 0 20px;
+  }
+  h2 {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin: 24px 0 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+  h2:first-of-type { margin-top: 0; }
+  label {
+    font-size: 13px;
+    color: var(--text-secondary);
+    display: block;
+    margin-bottom: 4px;
+  }
+  input {
+    width: 100%;
+    height: 40px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    padding: 0 12px;
+    font-size: 16px;
+    margin-bottom: 16px;
+    background: #fff;
+    color: var(--text-primary);
+  }
+  .toggle {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+  .toggle button {
+    flex: 1;
+    height: 38px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    background: var(--surface-1);
+    font-size: 14px;
+    cursor: pointer;
+  }
+  .toggle button.active {
+    background: var(--surface-2);
+    font-weight: 600;
+    border-color: #aaa;
+  }
+  .grid2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  .result {
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-top: 8px;
+  }
+  .result.muted { background: var(--surface-1); }
+  .result.accent { background: var(--bg-accent); }
+  .result p:first-child {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin: 0 0 4px;
+  }
+  .result.accent p:first-child { color: var(--text-accent); }
+  .result p:last-child {
+    font-size: 22px;
+    font-weight: 600;
+    margin: 0;
+  }
+  .result.accent p:last-child { color: var(--text-accent); }
+  .result.small p:last-child { font-size: 17px; }
+  .results-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 12px;
+  }
+  .error {
+    font-size: 13px;
+    color: #c0392b;
+    display: none;
+    margin: 0 0 12px;
+  }
+  .loan-block {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 14px 2px;
+    margin-bottom: 14px;
+  }
+  .loan-block p.loan-title {
+    font-size: 13px;
+    font-weight: 600;
+    margin: 0 0 12px;
+  }
+  .divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 20px 0;
+  }
+  .hint {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin: -8px 0 16px;
+  }
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>Finanzierungsrechner</h1>
+
+  <h2>Finanzierungsbedarf</h2>
+  <div class="toggle">
+    <button id="mode-direct" class="active" type="button">Darlehenssumme</button>
+    <button id="mode-kaufpreis" type="button">Kaufpreis - EK</button>
+  </div>
+
+  <div id="direct-fields">
+    <label for="darlehen">Darlehenssumme (€)</label>
+    <input type="number" id="darlehen" value="300000" min="0" step="1000" />
+  </div>
+
+  <div id="kaufpreis-fields" style="display:none;">
+    <label for="kaufpreis">Kaufpreis (€)</label>
+    <input type="number" id="kaufpreis" value="400000" min="0" step="1000" />
+    <label for="eigenkapital">Eigenkapital (€)</label>
+    <input type="number" id="eigenkapital" value="100000" min="0" step="1000" />
+
+    <div class="grid2">
+      <div>
+        <label for="grunderwerbsteuer">Grunderwerbsteuer (%)</label>
+        <input type="number" id="grunderwerbsteuer" value="5" min="0" step="0.1" />
+      </div>
+      <div>
+        <label for="notar">Notar + Grundbuch (%)</label>
+        <input type="number" id="notar" value="1.5" min="0" step="0.1" />
+      </div>
+    </div>
+    <label for="makler">Makler (%)</label>
+    <input type="number" id="makler" value="3.57" min="0" step="0.1" />
+    <p class="hint">Nebenkosten werden meist zusätzlich aus Eigenkapital bezahlt und erhöhen daher den Finanzierungsbedarf, falls das Eigenkapital nicht ausreicht.</p>
+
+    <div class="result muted">
+      <p>Nebenkosten gesamt</p>
+      <p id="out-nebenkosten">–</p>
+    </div>
+  </div>
+
+  <hr class="divider" />
+
+  <h2>Darlehen</h2>
+  <div class="toggle">
+    <button id="mode-one-loan" class="active" type="button">Ein Darlehen</button>
+    <button id="mode-two-loans" type="button">Zwei Darlehen</button>
+  </div>
+
+  <div id="one-loan-fields">
+    <div class="grid2">
+      <div>
+        <label for="zins">Zinssatz (% p.a.)</label>
+        <input type="number" id="zins" value="3.5" min="0" step="0.05" />
+      </div>
+      <div>
+        <label for="tilgung">Tilgung (% p.a.)</label>
+        <input type="number" id="tilgung" value="2" min="0" step="0.05" />
+      </div>
+    </div>
+  </div>
+
+  <div id="two-loan-fields" style="display:none;">
+    <div class="loan-block">
+      <p class="loan-title">Darlehen 1</p>
+      <label for="darlehen1-betrag">Betrag (€)</label>
+      <input type="number" id="darlehen1-betrag" value="200000" min="0" step="1000" />
+      <div class="grid2">
+        <div>
+          <label for="zins1">Zinssatz (% p.a.)</label>
+          <input type="number" id="zins1" value="3.5" min="0" step="0.05" />
+        </div>
+        <div>
+          <label for="tilgung1">Tilgung (% p.a.)</label>
+          <input type="number" id="tilgung1" value="2" min="0" step="0.05" />
+        </div>
+      </div>
+    </div>
+    <div class="loan-block">
+      <p class="loan-title">Darlehen 2 (z.B. KfW-Darlehen)</p>
+      <label for="darlehen2-betrag">Betrag (€)</label>
+      <input type="number" id="darlehen2-betrag" value="100000" min="0" step="1000" />
+      <div class="grid2">
+        <div>
+          <label for="zins2">Zinssatz (% p.a.)</label>
+          <input type="number" id="zins2" value="2" min="0" step="0.05" />
+        </div>
+        <div>
+          <label for="tilgung2">Tilgung (% p.a.)</label>
+          <input type="number" id="tilgung2" value="2" min="0" step="0.05" />
+        </div>
+      </div>
+    </div>
+    <p class="hint" id="two-loan-hint">Summe beider Darlehen sollte dem Finanzierungsbedarf entsprechen.</p>
+  </div>
+
+  <label for="zinsbindung">Zinsbindung (Jahre)</label>
+  <input type="number" id="zinsbindung" value="10" min="1" step="1" />
+
+  <p class="error" id="error"></p>
+
+  <hr class="divider" />
+  <h2>Ergebnis</h2>
+
+  <div class="result muted">
+    <p>Finanzierte Darlehenssumme</p>
+    <p id="out-darlehen">300.000 €</p>
+  </div>
+
+  <div class="results-grid">
+    <div class="result accent">
+      <p>Monatliche Rate gesamt</p>
+      <p id="out-rate">1.375 €</p>
+    </div>
+    <div class="result muted">
+      <p>Jahresrate gesamt</p>
+      <p id="out-jahr">16.500 €</p>
+    </div>
+  </div>
+
+  <div id="loan-breakdown"></div>
+
+  <div class="results-grid">
+    <div class="result muted small">
+      <p>Kreditlaufzeit (längstes Darlehen)</p>
+      <p id="out-laufzeit">–</p>
+    </div>
+    <div class="result muted small">
+      <p>Restschuld nach Zinsbindung</p>
+      <p id="out-restschuld">–</p>
+    </div>
+  </div>
+
+  <div class="results-grid">
+    <div class="result muted">
+      <p>Zinsen gesamt</p>
+      <p id="out-zinsen">–</p>
+    </div>
+    <div class="result muted">
+      <p>Gesamtsumme aller Raten</p>
+      <p id="out-gesamt">–</p>
+    </div>
+  </div>
+</div>
+
+<script>
+let mode = 'direct';
+let loanMode = 'one';
+
+const btnDirect = document.getElementById('mode-direct');
+const btnKaufpreis = document.getElementById('mode-kaufpreis');
+const directFields = document.getElementById('direct-fields');
+const kaufpreisFields = document.getElementById('kaufpreis-fields');
+
+const btnOneLoan = document.getElementById('mode-one-loan');
+const btnTwoLoans = document.getElementById('mode-two-loans');
+const oneLoanFields = document.getElementById('one-loan-fields');
+const twoLoanFields = document.getElementById('two-loan-fields');
+
+const error = document.getElementById('error');
+
+function setMode(m) {
+  mode = m;
+  const isDirect = m === 'direct';
+  directFields.style.display = isDirect ? 'block' : 'none';
+  kaufpreisFields.style.display = isDirect ? 'none' : 'block';
+  btnDirect.classList.toggle('active', isDirect);
+  btnKaufpreis.classList.toggle('active', !isDirect);
+  calc();
+}
+btnDirect.addEventListener('click', () => setMode('direct'));
+btnKaufpreis.addEventListener('click', () => setMode('kaufpreis'));
+
+function setLoanMode(m) {
+  loanMode = m;
+  const isOne = m === 'one';
+  oneLoanFields.style.display = isOne ? 'block' : 'none';
+  twoLoanFields.style.display = isOne ? 'none' : 'block';
+  btnOneLoan.classList.toggle('active', isOne);
+  btnTwoLoans.classList.toggle('active', !isOne);
+  calc();
+}
+btnOneLoan.addEventListener('click', () => setLoanMode('one'));
+btnTwoLoans.addEventListener('click', () => setLoanMode('two'));
+
+function fmt(n) {
+  return new Intl.NumberFormat('de-DE', {maximumFractionDigits: 0}).format(Math.round(n)) + ' \u20ac';
+}
+
+function fmtLaufzeit(monate) {
+  const jahre = Math.floor(monate / 12);
+  const restMonate = monate % 12;
+  return `${jahre} Jahre${restMonate ? ', ' + restMonate + ' Monate' : ''}`;
+}
+
+// Simuliert ein Annuitätendarlehen: konstante Monatsrate, Zinsanteil sinkt,
+// Tilgungsanteil steigt. Gibt Laufzeit, Zinsen gesamt und Restschuld nach
+// einer bestimmten Anzahl Jahre (Zinsbindung) zurück.
+function amortize(darlehen, zinsProzent, tilgungProzent, zinsbindungJahre) {
+  const monatsrate = darlehen * (zinsProzent + tilgungProzent) / 100 / 12;
+  const monatszins = zinsProzent / 100 / 12;
+  const maxMonate = 1200;
+
+  if (darlehen <= 0) {
+    return { monatsrate: 0, monate: 0, zinsenGesamt: 0, restschuldNachBindung: 0, zuNiedrig: false };
+  }
+  if (monatszins > 0 && monatsrate <= darlehen * monatszins) {
+    return { monatsrate, monate: 0, zinsenGesamt: 0, restschuldNachBindung: darlehen, zuNiedrig: true };
+  }
+
+  let restschuld = darlehen;
+  let monate = 0;
+  let zinsenGesamt = 0;
+  let restschuldNachBindung = null;
+  const bindungMonate = zinsbindungJahre * 12;
+
+  while (restschuld > 0 && monate < maxMonate) {
+    const zinsMonat = restschuld * monatszins;
+    let tilgungMonat = monatsrate - zinsMonat;
+    if (tilgungMonat > restschuld) tilgungMonat = restschuld;
+    restschuld -= tilgungMonat;
+    zinsenGesamt += zinsMonat;
+    monate++;
+    if (monate === bindungMonate) restschuldNachBindung = restschuld;
+  }
+  if (restschuldNachBindung === null) restschuldNachBindung = 0;
+
+  return { monatsrate, monate, zinsenGesamt, restschuldNachBindung, zuNiedrig: false };
+}
+
+function calc() {
+  error.style.display = 'none';
+  const zinsbindung = parseFloat(document.getElementById('zinsbindung').value) || 0;
+
+  let darlehenGesamt;
+  let nebenkostenGesamt = 0;
+
+  if (mode === 'direct') {
+    darlehenGesamt = parseFloat(document.getElementById('darlehen').value);
+  } else {
+    const kaufpreis = parseFloat(document.getElementById('kaufpreis').value);
+    const ek = parseFloat(document.getElementById('eigenkapital').value);
+    const grunderwerbsteuer = parseFloat(document.getElementById('grunderwerbsteuer').value) || 0;
+    const notar = parseFloat(document.getElementById('notar').value) || 0;
+    const makler = parseFloat(document.getElementById('makler').value) || 0;
+
+    nebenkostenGesamt = kaufpreis * (grunderwerbsteuer + notar + makler) / 100;
+    document.getElementById('out-nebenkosten').textContent = fmt(nebenkostenGesamt);
+
+    darlehenGesamt = (kaufpreis + nebenkostenGesamt) - ek;
+  }
+
+  if (!Number.isFinite(darlehenGesamt) || darlehenGesamt < 0) {
+    error.textContent = 'Bitte gültige, positive Werte eingeben.';
+    error.style.display = 'block';
+    return;
+  }
+
+  let loans = [];
+  const breakdownEl = document.getElementById('loan-breakdown');
+  breakdownEl.innerHTML = '';
+
+  if (loanMode === 'one') {
+    const zins = parseFloat(document.getElementById('zins').value);
+    const tilgung = parseFloat(document.getElementById('tilgung').value);
+    if (!Number.isFinite(zins) || zins < 0 || !Number.isFinite(tilgung) || tilgung < 0) {
+      error.textContent = 'Bitte gültige, positive Werte eingeben.';
+      error.style.display = 'block';
+      return;
+    }
+    loans.push({ name: null, betrag: darlehenGesamt, zins, tilgung });
+  } else {
+    const betrag1 = parseFloat(document.getElementById('darlehen1-betrag').value);
+    const zins1 = parseFloat(document.getElementById('zins1').value);
+    const tilgung1 = parseFloat(document.getElementById('tilgung1').value);
+    const betrag2 = parseFloat(document.getElementById('darlehen2-betrag').value);
+    const zins2 = parseFloat(document.getElementById('zins2').value);
+    const tilgung2 = parseFloat(document.getElementById('tilgung2').value);
+
+    if ([betrag1, zins1, tilgung1, betrag2, zins2, tilgung2].some(v => !Number.isFinite(v) || v < 0)) {
+      error.textContent = 'Bitte gültige, positive Werte eingeben.';
+      error.style.display = 'block';
+      return;
+    }
+
+    const summe = betrag1 + betrag2;
+    const hint = document.getElementById('two-loan-hint');
+    if (Math.abs(summe - darlehenGesamt) > 1) {
+      hint.textContent = `Achtung: Summe beider Darlehen (${fmt(summe)}) weicht vom Finanzierungsbedarf (${fmt(darlehenGesamt)}) ab.`;
+      hint.style.color = '#c0392b';
+    } else {
+      hint.textContent = 'Summe beider Darlehen entspricht dem Finanzierungsbedarf.';
+      hint.style.color = 'var(--text-secondary)';
+    }
+
+    loans.push({ name: 'Darlehen 1', betrag: betrag1, zins: zins1, tilgung: tilgung1 });
+    loans.push({ name: 'Darlehen 2', betrag: betrag2, zins: zins2, tilgung: tilgung2 });
+  }
+
+  let monatsrateGesamt = 0;
+  let zinsenGesamtSumme = 0;
+  let restschuldGesamt = 0;
+  let laufzeitMax = 0;
+  let zuNiedrigWarnung = false;
+  let darlehenSumme = 0;
+
+  loans.forEach(loan => {
+    const result = amortize(loan.betrag, loan.zins, loan.tilgung, zinsbindung);
+    monatsrateGesamt += result.monatsrate;
+    zinsenGesamtSumme += result.zinsenGesamt;
+    restschuldGesamt += result.restschuldNachBindung;
+    laufzeitMax = Math.max(laufzeitMax, result.monate);
+    darlehenSumme += loan.betrag;
+    if (result.zuNiedrig) zuNiedrigWarnung = true;
+
+    if (loan.name) {
+      const div = document.createElement('div');
+      div.className = 'result muted small';
+      div.style.marginTop = '8px';
+      div.innerHTML = `<p>${loan.name}: ${fmt(loan.betrag)} bei ${loan.zins}% Zins / ${loan.tilgung}% Tilgung</p><p>${fmt(result.monatsrate)} / Monat, Laufzeit ${result.monate >= 1200 ? 'über 100 Jahre' : fmtLaufzeit(result.monate)}</p>`;
+      breakdownEl.appendChild(div);
+    }
+  });
+
+  document.getElementById('out-darlehen').textContent = fmt(darlehenSumme);
+  document.getElementById('out-rate').textContent = fmt(monatsrateGesamt);
+  document.getElementById('out-jahr').textContent = fmt(monatsrateGesamt * 12);
+
+  if (zuNiedrigWarnung) {
+    document.getElementById('out-laufzeit').textContent = 'Rate zu niedrig';
+    document.getElementById('out-restschuld').textContent = '–';
+    document.getElementById('out-zinsen').textContent = '–';
+    document.getElementById('out-gesamt').textContent = '–';
+    return;
+  }
+
+  document.getElementById('out-laufzeit').textContent =
+    laufzeitMax >= 1200 ? 'über 100 Jahre' : fmtLaufzeit(laufzeitMax);
+  document.getElementById('out-restschuld').textContent = fmt(restschuldGesamt);
+  document.getElementById('out-zinsen').textContent = fmt(zinsenGesamtSumme);
+  document.getElementById('out-gesamt').textContent = fmt(darlehenSumme + zinsenGesamtSumme);
+}
+
+[
+  'darlehen', 'kaufpreis', 'eigenkapital', 'grunderwerbsteuer', 'notar', 'makler',
+  'zins', 'tilgung', 'darlehen1-betrag', 'zins1', 'tilgung1',
+  'darlehen2-betrag', 'zins2', 'tilgung2', 'zinsbindung'
+].forEach(id => {
+  document.getElementById(id).addEventListener('input', calc);
+});
+
+setMode('direct');
+setLoanMode('one');
+</script>
+</body>
+</html>
